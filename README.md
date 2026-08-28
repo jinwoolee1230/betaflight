@@ -24,6 +24,29 @@ This fork differs from Baseflight and Cleanflight in that it focuses on flight p
 
 명령 형식, 단위, 제한값, RPM 제어 조건, 관련 소스 파일과 보드 설정 서브모듈의 주의사항은 [edited_parts.md](edited_parts.md)를 참고하세요.
 
+### 테스트 및 빌드 환경
+
+이 커스텀 펌웨어는 **MICOAIRH743V2** 비행 컨트롤러에서 테스트했습니다. 빌드 구성 이름은 `MICOAIR743V2`이며, STM32H743 MCU를 대상으로 합니다.
+
+### MICOAIRH743V2 플래시 파일 만들기
+
+프로젝트 루트에서 아래 명령을 실행합니다.
+
+```bash
+git submodule update --init --recursive
+make MICOAIR743V2
+```
+
+성공하면 `obj/betaflight_*_STM32H743_MICOAIR743V2.hex` 형식의 HEX 플래시 파일이 생성됩니다. 현재 버전의 예시는 다음과 같습니다.
+
+```text
+obj/betaflight_4.5.5_STM32H743_MICOAIR743V2.hex
+```
+
+생성된 `.hex` 파일은 Betaflight Configurator의 로컬 펌웨어 플래시 기능 또는 사용 중인 STM32 플래싱 도구에서 선택해 쓸 수 있습니다.
+
+> 참고: `MICOAIR743V2` 설정 파일은 현재 `src/config` 서브모듈 안의 로컬 파일입니다. 새 환경에서 빌드하려면 `src/config/configs/MICOAIR743V2/config.h`가 존재해야 합니다. 이 설정 파일을 개인 저장소에서도 자동으로 복원할 수 있게 하려면 `config` 서브모듈도 별도 fork로 관리해야 합니다.
+
 ## Events
 
 | Date  | Event |
