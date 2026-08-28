@@ -264,6 +264,9 @@ static void calculateThrottleAndCurrentMotorEndpoints(timeUs_t currentTimeUs)
     }
 
     throttle = constrainf(throttle / currentThrottleInputRange, 0.0f, 1.0f);
+    if (isExternalControlModeActive()) {
+        throttle = getExternalControlThrottle();
+    }
 }
 
 #define CRASH_FLIP_DEADBAND 20
@@ -749,6 +752,7 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
     }
 
     if (featureIsEnabled(FEATURE_MOTOR_STOP)
+        && !isExternalControlModeActive()
         && ARMING_FLAG(ARMED)
         && !mixerRuntime.feature3dEnabled
         && !airmodeEnabled

@@ -49,3 +49,17 @@ float getFeedforward(int axis);
 void updateRcRefreshRate(timeUs_t currentTimeUs);
 uint16_t getCurrentRxIntervalUs(void);
 bool getRxRateValid(void);
+
+void setExternalRateThrust(
+    float throttle,
+    float rollRate,
+    float pitchRate,
+    float yawRate,
+    timeUs_t currentTimeUs
+);
+
+bool isExternalControlModeActive(void);
+bool isExternalControlCommandFresh(void);
+
+float getExternalControlThrottle(void);
+float getExternalControlRate(int axis);

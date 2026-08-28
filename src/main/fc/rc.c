@@ -82,6 +82,76 @@ enum {
     THROTTLE_FLAG = 1 << THROTTLE,
 };
 
+
+#define EXTERNAL_CONTROL_TIMEOUT_US 100000
+
+typedef struct {
+    float throttle;
+    float rate[XYZ_AXIS_COUNT];
+    timeUs_t lastUpdateUs;
+} externalControl_t;
+
+static externalControl_t externalControl;
+
+void setExternalRateThrust(
+    float throttle,
+    float rollRate,
+    float pitchRate,
+    float yawRate,
+    timeUs_t currentTimeUs
+)
+{
+    externalControl.throttle =
+        constrainf(throttle, 0.0f, 1.0f);
+
+    externalControl.rate[ROLL] =
+        constrainf(rollRate, -1998.0f, 1998.0f);
+
+    externalControl.rate[PITCH] =
+        constrainf(pitchRate, -1998.0f, 1998.0f);
+
+    externalControl.rate[YAW] =
+        constrainf(yawRate, -1998.0f, 1998.0f);
+
+    externalControl.lastUpdateUs = currentTimeUs;
+}
+
+bool isExternalControlModeActive(void)
+{
+    return IS_RC_MODE_ACTIVE(BOXMSPOVERRIDE);
+}
+
+bool isExternalControlCommandFresh(void)
+{
+    if (externalControl.lastUpdateUs == 0) {
+        return false;
+    }
+
+    return cmpTimeUs(
+        micros(),
+        externalControl.lastUpdateUs + EXTERNAL_CONTROL_TIMEOUT_US
+    ) < 0;
+}
+
+
+float getExternalControlThrottle(void)
+{
+    if (!isExternalControlCommandFresh()) {
+        return 0.0f;
+    }
+
+    return externalControl.throttle;
+}
+
+float getExternalControlRate(int axis)
+{
+    if (!isExternalControlCommandFresh()) {
+        return 0.0f;
+    }
+
+    return externalControl.rate[axis];
+}
+
 #ifdef USE_FEEDFORWARD
 static float feedforwardSmoothed[3];
 static float feedforwardRaw[3];
@@ -93,6 +163,10 @@ laggedMovingAverageCombined_t  feedforwardDeltaAvg[XYZ_AXIS_COUNT];
 
 float getFeedforward(int axis)
 {
+    if (isExternalControlModeActive()) {
+        return 0.0f;
+    }
+
 #ifdef USE_RC_SMOOTHING_FILTER
     return feedforwardSmoothed[axis];
 #else
@@ -111,6 +185,10 @@ static float rcDeflectionSmoothed[3];
 
 float getSetpointRate(int axis)
 {
+    if (isExternalControlModeActive()) {
+        return getExternalControlRate(axis);
+    }
+
 #ifdef USE_RC_SMOOTHING_FILTER
     return setpointRate[axis];
 #else

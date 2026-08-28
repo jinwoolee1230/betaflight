@@ -2636,6 +2636,33 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
     uint8_t value;
     const unsigned int dataSize = sbufBytesRemaining(src);
     switch (cmdMSP) {
+    case MSP2_SET_RATE_THRUST:
+    {
+        if (dataSize != 8) {
+            return MSP_RESULT_ERROR;
+        }
+
+        const uint16_t thrustRaw = sbufReadU16(src);
+        const int16_t rollRaw = (int16_t)sbufReadU16(src);
+        const int16_t pitchRaw = (int16_t)sbufReadU16(src);
+        const int16_t yawRaw = (int16_t)sbufReadU16(src);
+
+        const float throttle = thrustRaw / 10000.0f;
+
+        const float rollRate = rollRaw * 0.1f;
+        const float pitchRate = pitchRaw * 0.1f;
+        const float yawRate = yawRaw * 0.1f;
+
+        setExternalRateThrust(
+            throttle,
+            rollRate,
+            pitchRate,
+            yawRate,
+            micros()
+        );
+
+        return MSP_RESULT_NO_REPLY;
+    }
     case MSP_SELECT_SETTING:
         value = sbufReadU8(src);
         if ((value & RATEPROFILE_MASK) == 0) {
