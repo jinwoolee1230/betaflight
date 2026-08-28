@@ -16,8 +16,8 @@ This fork differs from Baseflight and Cleanflight in that it focuses on flight p
 
 주요 변경 사항은 MSPv2를 통한 외부 제어입니다.
 
-* `MSP_CTBR` (`0x30F0`)는 Roll, Pitch, Yaw rate와 추력으로 기체를 제어합니다.
-* `MSP_RPM` (`0x30F1`)은 모터별 RPM 목표값을 받아 DShot telemetry 기반의 폐루프 제어를 수행합니다.
+* `MSP_CTBR` (`0x30F0`)는 float collective thrust (`0.0–1.0`)와 float Roll, Pitch, Yaw body rate (`rad/s`)로 기체를 제어합니다.
+* `MSP_RPM` (`0x30F1`)은 모터별 정수 RPM 목표값을 받아 DShot telemetry 기반의 폐루프 제어를 수행합니다.
 * `BOXMSPOVERRIDE` 모드가 활성화된 동안 해당 외부 제어 명령을 사용합니다.
 * 외부 명령이 100 ms 동안 갱신되지 않으면 안전을 위해 rate와 추력을 0으로 처리합니다.
 * 외부 제어 중 feedforward를 끄고, `MOTOR_STOP`이 모터를 멈추지 않도록 변경했습니다.

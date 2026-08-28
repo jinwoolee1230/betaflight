@@ -94,7 +94,7 @@ typedef enum {
 typedef struct {
     float throttle;
     float rate[XYZ_AXIS_COUNT];
-    uint16_t motorRpm[MAX_SUPPORTED_MOTORS];
+    uint32_t motorRpm[MAX_SUPPORTED_MOTORS];
     timeUs_t lastUpdateUs;
     externalControlMode_e mode;
 } externalControl_t;
@@ -102,30 +102,30 @@ typedef struct {
 static externalControl_t externalControl;
 
 void setExternalRateThrust(
-    float throttle,
-    float rollRate,
-    float pitchRate,
-    float yawRate,
+    float collectiveThrust,
+    float rollRateRad,
+    float pitchRateRad,
+    float yawRateRad,
     timeUs_t currentTimeUs
 )
 {
     externalControl.throttle =
-        constrainf(throttle, 0.0f, 1.0f);
+        isfinite(collectiveThrust) ? constrainf(collectiveThrust, 0.0f, 1.0f) : 0.0f;
 
     externalControl.rate[ROLL] =
-        constrainf(rollRate, -1998.0f, 1998.0f);
+        isfinite(rollRateRad) ? constrainf(RADIANS_TO_DEGREES(rollRateRad), -1998.0f, 1998.0f) : 0.0f;
 
     externalControl.rate[PITCH] =
-        constrainf(pitchRate, -1998.0f, 1998.0f);
+        isfinite(pitchRateRad) ? constrainf(RADIANS_TO_DEGREES(pitchRateRad), -1998.0f, 1998.0f) : 0.0f;
 
     externalControl.rate[YAW] =
-        constrainf(yawRate, -1998.0f, 1998.0f);
+        isfinite(yawRateRad) ? constrainf(RADIANS_TO_DEGREES(yawRateRad), -1998.0f, 1998.0f) : 0.0f;
 
     externalControl.lastUpdateUs = currentTimeUs;
     externalControl.mode = EXTERNAL_CONTROL_CTBR;
 }
 
-void setExternalMotorRpm(const uint16_t *rpm, uint8_t motorCount, timeUs_t currentTimeUs)
+void setExternalMotorRpm(const uint32_t *rpm, uint8_t motorCount, timeUs_t currentTimeUs)
 {
     const uint8_t count = MIN(motorCount, MAX_SUPPORTED_MOTORS);
 
@@ -188,7 +188,7 @@ float getExternalControlRate(int axis)
     return externalControl.rate[axis];
 }
 
-uint16_t getExternalMotorRpm(uint8_t motorIndex)
+uint32_t getExternalMotorRpm(uint8_t motorIndex)
 {
     if (motorIndex >= MAX_SUPPORTED_MOTORS || !isExternalRpmControlModeActive() || !isExternalControlCommandFresh()) {
         return 0;

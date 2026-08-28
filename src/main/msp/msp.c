@@ -2638,26 +2638,30 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
     switch (cmdMSP) {
     case MSP_CTBR:
     {
-        if (dataSize != 8) {
+        if (dataSize != 4 * sizeof(float)) {
             return MSP_RESULT_ERROR;
         }
 
-        const uint16_t thrustRaw = sbufReadU16(src);
-        const int16_t rollRaw = (int16_t)sbufReadU16(src);
-        const int16_t pitchRaw = (int16_t)sbufReadU16(src);
-        const int16_t yawRaw = (int16_t)sbufReadU16(src);
+        union {
+            uint32_t bits;
+            float value;
+        } collectiveThrust, rollRate, pitchRate, yawRate;
 
-        const float throttle = thrustRaw / 10000.0f;
+        collectiveThrust.bits = sbufReadU32(src);
+        rollRate.bits = sbufReadU32(src);
+        pitchRate.bits = sbufReadU32(src);
+        yawRate.bits = sbufReadU32(src);
 
-        const float rollRate = rollRaw * 0.1f;
-        const float pitchRate = pitchRaw * 0.1f;
-        const float yawRate = yawRaw * 0.1f;
+        if (!isfinite(collectiveThrust.value) || !isfinite(rollRate.value)
+            || !isfinite(pitchRate.value) || !isfinite(yawRate.value)) {
+            return MSP_RESULT_ERROR;
+        }
 
         setExternalRateThrust(
-            throttle,
-            rollRate,
-            pitchRate,
-            yawRate,
+            collectiveThrust.value,
+            rollRate.value,
+            pitchRate.value,
+            yawRate.value,
             micros()
         );
 
@@ -2666,13 +2670,13 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
     case MSP_RPM:
     {
         const unsigned motorCount = getMotorCount();
-        if (motorCount == 0 || dataSize != motorCount * sizeof(uint16_t)) {
+        if (motorCount == 0 || dataSize != motorCount * sizeof(uint32_t)) {
             return MSP_RESULT_ERROR;
         }
 
-        uint16_t rpm[MAX_SUPPORTED_MOTORS];
+        uint32_t rpm[MAX_SUPPORTED_MOTORS];
         for (unsigned motor = 0; motor < motorCount; motor++) {
-            rpm[motor] = sbufReadU16(src);
+            rpm[motor] = sbufReadU32(src);
         }
 
         setExternalMotorRpm(rpm, motorCount, micros());

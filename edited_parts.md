@@ -18,30 +18,30 @@
 
 ### `MSP_CTBR` (`0x30F0`)
 
-새 명령은 정확히 8바이트의 payload를 받아야 한다. 길이가 8바이트가 아니면 명령은 오류로 거절된다.
+새 명령은 정확히 16바이트의 little-endian IEEE 754 `float` payload를 받아야 한다. 길이가 16바이트가 아니거나 `NaN`/무한대 값이 포함되면 명령은 오류로 거절된다.
 
 | 순서 | 형식 | 원시값 의미 | 펌웨어 내부 값 |
-| --- | --- | --- |
-| 1 | `uint16_t` | thrust | `raw / 10000.0`, 최종 범위 `0.0–1.0` |
-| 2 | `int16_t` | roll rate | `raw × 0.1 deg/s`, 최종 범위 `-1998–1998 deg/s` |
-| 3 | `int16_t` | pitch rate | `raw × 0.1 deg/s`, 최종 범위 `-1998–1998 deg/s` |
-| 4 | `int16_t` | yaw rate | `raw × 0.1 deg/s`, 최종 범위 `-1998–1998 deg/s` |
+| --- | --- | --- | --- |
+| 1 | `float` | normalized collective thrust | 최종 범위 `0.0–1.0` |
+| 2 | `float` | roll body rate (`rad/s`) | deg/s로 변환 후 `-1998–1998 deg/s`로 제한 |
+| 3 | `float` | pitch body rate (`rad/s`) | deg/s로 변환 후 `-1998–1998 deg/s`로 제한 |
+| 4 | `float` | yaw body rate (`rad/s`) | deg/s로 변환 후 `-1998–1998 deg/s`로 제한 |
 
-예를 들어 thrust를 50%로 설정하려면 첫 필드에 `5000`을 전송한다. Roll을 `120 deg/s`로 설정하려면 Roll 필드에 `1200`을 전송한다. 명령은 응답 payload 없이 처리된다.
+예를 들어 collective thrust 50%는 첫 필드에 `0.5f`를 전송한다. Roll `2.0 rad/s`는 Roll 필드에 `2.0f`를 전송한다. 명령은 응답 payload 없이 처리된다.
 
-`MSP2_SET_RATE_THRUST`는 이전 이름과의 소스 호환성을 위해 같은 `0x30F0` 값의 별칭으로 남아 있다.
+`MSP2_SET_RATE_THRUST`는 이전 이름과의 소스 호환성을 위해 같은 `0x30F0` 값의 별칭으로 남아 있다. 단, `0x30F0`의 wire payload는 기존 8바이트 정수 형식에서 이 16바이트 float 형식으로 변경되었으므로 기존 외부 송신기는 반드시 함께 수정해야 한다.
 
 ### `MSP_RPM` (`0x30F1`)
 
-`MSP_RPM`은 모터별 기계적 RPM 목표값을 직접 지정한다. Payload 길이는 현재 기체의 모터 수에 정확히 일치해야 하며, 각 값은 little-endian `uint16_t`다.
+`MSP_RPM`은 모터별 기계적 RPM 목표값을 직접 지정한다. Payload 길이는 현재 기체의 모터 수에 정확히 일치해야 하며, 각 값은 little-endian 부호 없는 32-bit 정수(`uint32_t`)다. RPM은 음수가 될 수 없으므로 unsigned integer를 사용한다.
 
 | 기체 모터 수 | Payload 길이 | Payload 순서 |
 | --- | --- | --- |
-| Quad (4) | 8 bytes | Motor 1, 2, 3, 4의 RPM |
-| Hexa (6) | 12 bytes | Motor 1–6의 RPM |
-| Octo (8) | 16 bytes | Motor 1–8의 RPM |
+| Quad (4) | 16 bytes | Motor 1, 2, 3, 4의 RPM |
+| Hexa (6) | 24 bytes | Motor 1–6의 RPM |
+| Octo (8) | 32 bytes | Motor 1–8의 RPM |
 
-각 RPM 값은 `0–65535 rpm` 범위이며, 펌웨어는 보드/모터 설정에서 계산한 추정 최대 RPM보다 높은 값은 그 최대값으로 제한한다. 값 `0`은 해당 모터의 출력을 disarm 값으로 설정한다. 이 명령도 응답 payload 없이 처리된다.
+각 RPM 값은 `0–4294967295 rpm` 범위의 정수이며, 펌웨어는 보드/모터 설정에서 계산한 추정 최대 RPM보다 높은 값은 그 최대값으로 제한한다. 값 `0`은 해당 모터의 출력을 disarm 값으로 설정한다. 이 명령도 응답 payload 없이 처리된다.
 
 RPM 모드에서는 DShot telemetry가 **모든 활성 모터**에서 유효해야 한다. telemetry가 없거나 하나라도 유효하지 않으면 일반 mixer나 RC 제어로 되돌아가지 않고, 모든 모터 출력을 disarm 값으로 강제한다.
 
@@ -68,7 +68,7 @@ RPM 모드에서는 DShot telemetry가 **모든 활성 모터**에서 유효해�
 | 파일 | 변경 내용 |
 | --- | --- |
 | `src/main/msp/msp_protocol_v2_betaflight.h` | `MSP_CTBR` 및 `MSP_RPM` 명령 ID 정의 추가 |
-| `src/main/msp/msp.c` | CTBR 8바이트 payload와 모터별 RPM payload 파싱, 외부 제어 값 전달 추가 |
+| `src/main/msp/msp.c` | CTBR float 16바이트 payload와 모터별 32-bit integer RPM payload 파싱, 외부 제어 값 전달 추가 |
 | `src/main/fc/rc.h` | 외부 제어 API 선언 추가 |
 | `src/main/fc/rc.c` | CTBR/RPM 모드 상태, 외부 입력 저장, 범위 제한, 100 ms 만료 확인, rate 대체 및 feedforward 비활성화 추가 |
 | `src/main/flight/mixer.c` | 외부 thrust 사용, 모터별 RPM PI 폐루프, telemetry failsafe 및 외부 제어 중 `MOTOR_STOP` 예외 처리 |

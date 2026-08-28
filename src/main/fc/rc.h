@@ -51,13 +51,13 @@ uint16_t getCurrentRxIntervalUs(void);
 bool getRxRateValid(void);
 
 void setExternalRateThrust(
-    float throttle,
-    float rollRate,
-    float pitchRate,
-    float yawRate,
+    float collectiveThrust,
+    float rollRateRad,
+    float pitchRateRad,
+    float yawRateRad,
     timeUs_t currentTimeUs
 );
-void setExternalMotorRpm(const uint16_t *rpm, uint8_t motorCount, timeUs_t currentTimeUs);
+void setExternalMotorRpm(const uint32_t *rpm, uint8_t motorCount, timeUs_t currentTimeUs);
 
 bool isExternalControlModeActive(void);
 bool isExternalRateThrustControlActive(void);
@@ -66,4 +66,4 @@ bool isExternalControlCommandFresh(void);
 
 float getExternalControlThrottle(void);
 float getExternalControlRate(int axis);
-uint16_t getExternalMotorRpm(uint8_t motorIndex);
+uint32_t getExternalMotorRpm(uint8_t motorIndex);
