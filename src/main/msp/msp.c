@@ -2636,7 +2636,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
     uint8_t value;
     const unsigned int dataSize = sbufBytesRemaining(src);
     switch (cmdMSP) {
-    case MSP2_SET_RATE_THRUST:
+    case MSP_CTBR:
     {
         if (dataSize != 8) {
             return MSP_RESULT_ERROR;
@@ -2661,6 +2661,21 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             micros()
         );
 
+        return MSP_RESULT_NO_REPLY;
+    }
+    case MSP_RPM:
+    {
+        const unsigned motorCount = getMotorCount();
+        if (motorCount == 0 || dataSize != motorCount * sizeof(uint16_t)) {
+            return MSP_RESULT_ERROR;
+        }
+
+        uint16_t rpm[MAX_SUPPORTED_MOTORS];
+        for (unsigned motor = 0; motor < motorCount; motor++) {
+            rpm[motor] = sbufReadU16(src);
+        }
+
+        setExternalMotorRpm(rpm, motorCount, micros());
         return MSP_RESULT_NO_REPLY;
     }
     case MSP_SELECT_SETTING:

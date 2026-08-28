@@ -14,14 +14,15 @@ This fork differs from Baseflight and Cleanflight in that it focuses on flight p
 
 이 날짜는 개인 저장소에 수정사항을 최초로 커밋한 날짜입니다. 수정은 커밋 전에 작업 폴더에 존재했으므로 실제 구현 날짜는 별도로 확인할 수 없습니다.
 
-주요 변경 사항은 MSPv2를 통한 외부 rate/thrust 제어입니다.
+주요 변경 사항은 MSPv2를 통한 외부 제어입니다.
 
-* 새 명령 `MSP2_SET_RATE_THRUST` (`0x30F0`)를 추가했습니다.
-* `BOXMSPOVERRIDE` 모드가 활성화된 동안 조종기 스틱 대신 외부 명령의 Roll, Pitch, Yaw rate와 추력을 사용합니다.
+* `MSP_CTBR` (`0x30F0`)는 Roll, Pitch, Yaw rate와 추력으로 기체를 제어합니다.
+* `MSP_RPM` (`0x30F1`)은 모터별 RPM 목표값을 받아 DShot telemetry 기반의 폐루프 제어를 수행합니다.
+* `BOXMSPOVERRIDE` 모드가 활성화된 동안 해당 외부 제어 명령을 사용합니다.
 * 외부 명령이 100 ms 동안 갱신되지 않으면 안전을 위해 rate와 추력을 0으로 처리합니다.
 * 외부 제어 중 feedforward를 끄고, `MOTOR_STOP`이 모터를 멈추지 않도록 변경했습니다.
 
-명령 형식, 단위, 제한값, 관련 소스 파일과 보드 설정 서브모듈의 주의사항은 [edited_parts.md](edited_parts.md)를 참고하세요.
+명령 형식, 단위, 제한값, RPM 제어 조건, 관련 소스 파일과 보드 설정 서브모듈의 주의사항은 [edited_parts.md](edited_parts.md)를 참고하세요.
 
 ## Events
 

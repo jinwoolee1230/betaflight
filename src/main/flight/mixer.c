@@ -107,6 +107,69 @@ static FAST_DATA_ZERO_INIT float motorRangeMax;
 static FAST_DATA_ZERO_INIT float motorOutputRange;
 static FAST_DATA_ZERO_INIT int8_t motorOutputMixSign;
 
+#define EXTERNAL_RPM_CONTROL_P_GAIN 0.000010f
+#define EXTERNAL_RPM_CONTROL_I_GAIN 0.000050f
+#define EXTERNAL_RPM_CONTROL_I_LIMIT 0.25f
+
+static FAST_DATA_ZERO_INIT float externalRpmControlIntegral[MAX_SUPPORTED_MOTORS];
+
+static void resetExternalRpmControl(void)
+{
+    for (int motorIndex = 0; motorIndex < mixerRuntime.motorCount; motorIndex++) {
+        externalRpmControlIntegral[motorIndex] = 0.0f;
+        motor[motorIndex] = mixerRuntime.disarmMotorOutput;
+    }
+}
+
+static void applyExternalRpmControl(void)
+{
+#ifdef USE_DSHOT_TELEMETRY
+    // Per-motor closed-loop RPM control requires valid telemetry from every
+    // motor.  Never fall back to the ordinary mixer if telemetry is absent.
+    if (!ARMING_FLAG(ARMED) || !isExternalControlCommandFresh() || !useDshotTelemetry || !isDshotTelemetryActive()) {
+        resetExternalRpmControl();
+        return;
+    }
+
+    const float maxRpm = motorEstimateMaxRpm();
+    if (maxRpm <= 0.0f) {
+        resetExternalRpmControl();
+        return;
+    }
+
+    for (int motorIndex = 0; motorIndex < mixerRuntime.motorCount; motorIndex++) {
+        const float targetRpm = MIN((float)getExternalMotorRpm(motorIndex), maxRpm);
+        if (targetRpm <= 0.0f) {
+            externalRpmControlIntegral[motorIndex] = 0.0f;
+            motor[motorIndex] = mixerRuntime.disarmMotorOutput;
+            continue;
+        }
+
+        const float error = targetRpm - getDshotRpm(motorIndex);
+        const float proportional = error * EXTERNAL_RPM_CONTROL_P_GAIN;
+        const float integralCandidate = constrainf(
+            externalRpmControlIntegral[motorIndex] + error * EXTERNAL_RPM_CONTROL_I_GAIN * pidGetDT(),
+            -EXTERNAL_RPM_CONTROL_I_LIMIT,
+            EXTERNAL_RPM_CONTROL_I_LIMIT
+        );
+        const float feedForward = targetRpm / maxRpm;
+        const float output = constrainf(feedForward + proportional + integralCandidate, 0.0f, 1.0f);
+
+        // Do not integrate further into saturation.  This avoids a large
+        // stored correction when the target becomes reachable again.
+        if ((output > 0.0f && output < 1.0f)
+            || (output == 0.0f && error > 0.0f)
+            || (output == 1.0f && error < 0.0f)) {
+            externalRpmControlIntegral[motorIndex] = integralCandidate;
+        }
+
+        motor[motorIndex] = motorRangeMin + output * (motorRangeMax - motorRangeMin);
+    }
+#else
+    resetExternalRpmControl();
+#endif
+}
+
 static void calculateThrottleAndCurrentMotorEndpoints(timeUs_t currentTimeUs)
 {
     static uint16_t rcThrottlePrevious = 0;   // Store the last throttle direction for deadband transitions
@@ -264,7 +327,7 @@ static void calculateThrottleAndCurrentMotorEndpoints(timeUs_t currentTimeUs)
     }
 
     throttle = constrainf(throttle / currentThrottleInputRange, 0.0f, 1.0f);
-    if (isExternalControlModeActive()) {
+    if (isExternalRateThrustControlActive()) {
         throttle = getExternalControlThrottle();
     }
 }
@@ -606,6 +669,11 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
 {
     // Find min and max throttle based on conditions. Throttle has to be known before mixing
     calculateThrottleAndCurrentMotorEndpoints(currentTimeUs);
+
+    if (isExternalRpmControlModeActive()) {
+        applyExternalRpmControl();
+        return;
+    }
 
     if (isFlipOverAfterCrashActive()) {
         applyFlipOverAfterCrashModeToMotors();

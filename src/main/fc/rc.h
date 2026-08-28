@@ -57,9 +57,13 @@ void setExternalRateThrust(
     float yawRate,
     timeUs_t currentTimeUs
 );
+void setExternalMotorRpm(const uint16_t *rpm, uint8_t motorCount, timeUs_t currentTimeUs);
 
 bool isExternalControlModeActive(void);
+bool isExternalRateThrustControlActive(void);
+bool isExternalRpmControlModeActive(void);
 bool isExternalControlCommandFresh(void);
 
 float getExternalControlThrottle(void);
 float getExternalControlRate(int axis);
+uint16_t getExternalMotorRpm(uint8_t motorIndex);

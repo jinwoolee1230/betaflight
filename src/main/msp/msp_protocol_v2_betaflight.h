@@ -29,7 +29,11 @@
 #define MSP2_GET_LED_STRIP_CONFIG_VALUES    0x3008
 #define MSP2_SET_LED_STRIP_CONFIG_VALUES    0x3009
 #define MSP2_SENSOR_CONFIG_ACTIVE           0x300A
-#define MSP2_SET_RATE_THRUST                0x30F0
+// Custom external-control commands.  Although these are MSPv2 commands, the
+// short names are retained for compatibility with the external controller.
+#define MSP_CTBR                             0x30F0
+#define MSP_RPM                              0x30F1
+#define MSP2_SET_RATE_THRUST                MSP_CTBR
 
 // MSP2_SET_TEXT and MSP2_GET_TEXT variable types
 #define MSP2TEXT_PILOT_NAME                      1
