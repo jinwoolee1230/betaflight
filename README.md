@@ -29,7 +29,7 @@ This fork differs from Baseflight and Cleanflight in that it focuses on flight p
 
 이 커스텀 펌웨어는 **MICOAIRH743V2** 비행 컨트롤러에서 테스트했습니다. 빌드 구성 이름은 `MICOAIR743V2`이며, STM32H743 MCU를 대상으로 합니다.
 
-MSP serial 처리 task는 1 kHz로 설정되어 있어 CTBR/RPM 명령과 상태 조회를 합쳐 초당 약 1,000개 MSP 패킷까지 처리하도록 구성했습니다. 실제 처리율은 CPU 부하, UART/USB 링크 및 패킷 크기에 따라 달라질 수 있습니다.
+MSP serial 처리 task는 2 kHz로 설정되어 있어 CTBR/RPM 명령과 상태 조회를 합쳐 초당 약 2,000개 MSP 패킷까지 처리하도록 구성했습니다. 실제 처리율은 CPU 부하, UART/USB 링크 및 패킷 크기에 따라 달라질 수 있습니다.
 
 ### MICOAIRH743V2 플래시 파일 만들기
 

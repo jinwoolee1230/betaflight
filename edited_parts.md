@@ -83,9 +83,9 @@ RPM 모드에서는 DShot telemetry가 **모든 활성 모터**에서 유효해�
 
 ## MSP 수신 주기
 
-`TASK_SERIAL`의 목표 주기는 2026-08-29에 100 Hz에서 **1 kHz**로 변경했다. 이 값은 CLI에서 설정하는 항목이 아니라 펌웨어 scheduler의 컴파일 타임 설정이므로, 변경된 펌웨어를 빌드하고 비행 컨트롤러에 플래시해야 적용된다. MSP 수신 task는 한 실행에서 패킷 하나를 처리하므로, CTBR/RPM 명령과 `MSP_STATUS` 같은 조회 명령을 합친 전체 패킷 빈도를 기준으로 계산해야 한다.
+`TASK_SERIAL`의 목표 주기는 2026-08-29에 100 Hz에서 **2 kHz**로 변경했다. 이 값은 CLI에서 설정하는 항목이 아니라 펌웨어 scheduler의 컴파일 타임 설정이므로, 변경된 펌웨어를 빌드하고 비행 컨트롤러에 플래시해야 적용된다. MSP 수신 task는 한 실행에서 패킷 하나를 처리하므로, CTBR/RPM 명령과 `MSP_STATUS` 같은 조회 명령을 합친 전체 패킷 빈도를 기준으로 계산해야 한다.
 
-1 kHz는 목표 주기이며, 실제 주기는 낮은 scheduler 우선순위, CPU 부하, UART/USB 대역폭, 호스트 송신 지터에 따라 달라질 수 있다. Quad 기준 CTBR/RPM MSPv2 프레임은 약 25 bytes이므로, 1 kHz 연속 전송에는 UART 460800 baud 이상을 권장한다.
+2 kHz는 목표 주기이며, 실제 주기는 낮은 scheduler 우선순위, CPU 부하, UART/USB 대역폭, 호스트 송신 지터에 따라 달라질 수 있다. Quad 기준 CTBR/RPM MSPv2 프레임은 약 25 bytes이므로, 2 kHz 연속 전송에는 UART 1 Mbaud 이상을 권장한다.
 
 ## `src/config` 서브모듈 상태
 
