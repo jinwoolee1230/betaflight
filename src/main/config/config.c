@@ -595,7 +595,8 @@ if (systemConfig()->configurationState == CONFIGURATION_STATE_UNCONFIGURED) {
 
     for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
         const modeActivationCondition_t *mac = modeActivationConditions(i);
-        if (mac->modeId == BOXMSPOVERRIDE && ((1 << (mac->auxChannelIndex + NON_AUX_CHANNEL_COUNT) & (rxConfig()->msp_override_channels_mask)))) {
+        if ((mac->modeId == BOXMSPCTBR || mac->modeId == BOXMSPRPM)
+            && ((1 << (mac->auxChannelIndex + NON_AUX_CHANNEL_COUNT) & (rxConfig()->msp_override_channels_mask)))) {
             rxConfigMutable()->msp_override_channels_mask &= ~(1 << (mac->auxChannelIndex + NON_AUX_CHANNEL_COUNT));
         }
     }

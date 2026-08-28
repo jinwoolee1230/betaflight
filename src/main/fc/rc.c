@@ -85,18 +85,12 @@ enum {
 
 #define EXTERNAL_CONTROL_TIMEOUT_US 100000
 
-typedef enum {
-    EXTERNAL_CONTROL_NONE,
-    EXTERNAL_CONTROL_CTBR,
-    EXTERNAL_CONTROL_RPM,
-} externalControlMode_e;
-
 typedef struct {
     float throttle;
     float rate[XYZ_AXIS_COUNT];
     uint32_t motorRpm[MAX_SUPPORTED_MOTORS];
-    timeUs_t lastUpdateUs;
-    externalControlMode_e mode;
+    timeUs_t ctbrLastUpdateUs;
+    timeUs_t rpmLastUpdateUs;
 } externalControl_t;
 
 static externalControl_t externalControl;
@@ -121,8 +115,7 @@ void setExternalRateThrust(
     externalControl.rate[YAW] =
         isfinite(yawRateRad) ? constrainf(RADIANS_TO_DEGREES(yawRateRad), -1998.0f, 1998.0f) : 0.0f;
 
-    externalControl.lastUpdateUs = currentTimeUs;
-    externalControl.mode = EXTERNAL_CONTROL_CTBR;
+    externalControl.ctbrLastUpdateUs = currentTimeUs;
 }
 
 void setExternalMotorRpm(const uint32_t *rpm, uint8_t motorCount, timeUs_t currentTimeUs)
@@ -136,43 +129,47 @@ void setExternalMotorRpm(const uint32_t *rpm, uint8_t motorCount, timeUs_t curre
         externalControl.motorRpm[motor] = 0;
     }
 
-    externalControl.lastUpdateUs = currentTimeUs;
-    externalControl.mode = EXTERNAL_CONTROL_RPM;
+    externalControl.rpmLastUpdateUs = currentTimeUs;
 }
 
 bool isExternalControlModeActive(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXMSPOVERRIDE);
+    return IS_RC_MODE_ACTIVE(BOXMSPCTBR) || IS_RC_MODE_ACTIVE(BOXMSPRPM);
 }
 
 bool isExternalRateThrustControlActive(void)
 {
-    // Keep the original safe behaviour when MSP override is selected before
-    // the first external command: CTBR getters then return zero on timeout.
-    return isExternalControlModeActive() && externalControl.mode != EXTERNAL_CONTROL_RPM;
+    // RPM has priority if both mode ranges are accidentally active.
+    return IS_RC_MODE_ACTIVE(BOXMSPCTBR) && !IS_RC_MODE_ACTIVE(BOXMSPRPM);
 }
 
 bool isExternalRpmControlModeActive(void)
 {
-    return isExternalControlModeActive() && externalControl.mode == EXTERNAL_CONTROL_RPM;
+    return IS_RC_MODE_ACTIVE(BOXMSPRPM);
 }
 
-bool isExternalControlCommandFresh(void)
+static bool externalControlCommandIsFresh(const timeUs_t lastUpdateUs)
 {
-    if (externalControl.lastUpdateUs == 0) {
+    if (lastUpdateUs == 0) {
         return false;
     }
 
     return cmpTimeUs(
         micros(),
-        externalControl.lastUpdateUs + EXTERNAL_CONTROL_TIMEOUT_US
+        lastUpdateUs + EXTERNAL_CONTROL_TIMEOUT_US
     ) < 0;
 }
 
+bool isExternalControlCommandFresh(void)
+{
+    return isExternalRpmControlModeActive()
+        ? externalControlCommandIsFresh(externalControl.rpmLastUpdateUs)
+        : externalControlCommandIsFresh(externalControl.ctbrLastUpdateUs);
+}
 
 float getExternalControlThrottle(void)
 {
-    if (!isExternalRateThrustControlActive() || !isExternalControlCommandFresh()) {
+    if (!isExternalRateThrustControlActive() || !externalControlCommandIsFresh(externalControl.ctbrLastUpdateUs)) {
         return 0.0f;
     }
 
@@ -181,7 +178,7 @@ float getExternalControlThrottle(void)
 
 float getExternalControlRate(int axis)
 {
-    if (!isExternalRateThrustControlActive() || !isExternalControlCommandFresh()) {
+    if (!isExternalRateThrustControlActive() || !externalControlCommandIsFresh(externalControl.ctbrLastUpdateUs)) {
         return 0.0f;
     }
 
@@ -190,7 +187,7 @@ float getExternalControlRate(int axis)
 
 uint32_t getExternalMotorRpm(uint8_t motorIndex)
 {
-    if (motorIndex >= MAX_SUPPORTED_MOTORS || !isExternalRpmControlModeActive() || !isExternalControlCommandFresh()) {
+    if (motorIndex >= MAX_SUPPORTED_MOTORS || !isExternalRpmControlModeActive() || !externalControlCommandIsFresh(externalControl.rpmLastUpdateUs)) {
         return 0;
     }
 

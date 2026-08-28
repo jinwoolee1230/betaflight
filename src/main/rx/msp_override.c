@@ -24,6 +24,7 @@
 
 #include "rx/msp_override.h"
 #include "rx/msp.h"
+#include "fc/rc.h"
 #include "fc/rc_modes.h"
 #include "common/maths.h"
 
@@ -36,7 +37,7 @@ uint16_t rxMspOverrideReadRawRc(const rxRuntimeState_t *rxRuntimeState, const rx
 
     bool override = (1 << chan) & rxConfig->msp_override_channels_mask;
 
-    if (IS_RC_MODE_ACTIVE(BOXMSPOVERRIDE) && override) {
+    if (isExternalControlModeActive() && override) {
         return overrideSample;
     } else {
         return rxSample;

@@ -12,7 +12,7 @@
 
 ## 변경 목적
 
-기존 RC 입력 대신 외부 장치가 MSPv2로 전송하는 명령으로 기체를 제어할 수 있게 한다. 외부 제어는 `BOXMSPOVERRIDE` 비행 모드가 활성화되었을 때만 적용된다. 제어 방식은 마지막으로 수신한 명령에 따라 CTBR 또는 RPM으로 선택된다.
+기존 RC 입력 대신 외부 장치가 MSPv2로 전송하는 명령으로 기체를 제어할 수 있게 한다. Configurator의 Modes 탭에 별도로 표시되는 `MSP CTBR` 또는 `MSP RPM` 비행 모드가 활성화되었을 때만 해당 제어가 적용된다. 마지막으로 수신한 MSP 명령이 아니라 활성화된 AUX 모드가 제어 방식을 결정한다.
 
 ## 추가된 MSPv2 명령
 
@@ -48,19 +48,21 @@ RPM 모드에서는 DShot telemetry가 **모든 활성 모터**에서 유효해�
 ## 제어 동작
 
 1. `MSP_CTBR`를 수신하면 추력과 세 축의 목표 각속도, 수신 시각을 저장한다.
-2. CTBR 상태에서 `BOXMSPOVERRIDE`가 활성화되면 `getSetpointRate()`가 RC 스틱 값 대신 저장된 외부 rate를 반환하고, 모터 믹서는 저장된 외부 thrust를 사용한다.
-3. `MSP_RPM`을 수신하면 모터별 목표 RPM과 수신 시각을 저장하고 RPM 상태로 전환한다.
+2. `MSP CTBR` 모드가 활성화되면 `getSetpointRate()`가 RC 스틱 값 대신 저장된 외부 rate를 반환하고, 모터 믹서는 저장된 외부 thrust를 사용한다.
+3. `MSP_RPM`을 수신하면 모터별 목표 RPM과 수신 시각을 저장한다. `MSP RPM` 모드가 활성화되어야 이 값이 사용된다.
 4. RPM 상태에서는 일반 자세 PID mixer의 최종 모터 출력을 사용하지 않고, 모터별 RPM PI 제어기의 출력으로 교체한다. PI 제어기는 목표 RPM/추정 최대 RPM의 feed-forward에 현재 DShot RPM 오차의 비례·적분 보정을 더한다.
 5. 마지막 외부 명령 후 100 ms(`100000 us`)가 지나면 명령은 만료된다. CTBR은 rate와 thrust를 `0`으로 처리하며, RPM 모드는 모든 모터를 disarm 값으로 설정한다.
 
 외부 제어 모드가 아닌 경우 기존 RC 기반 동작을 유지한다.
 
+`MSP CTBR`과 `MSP RPM`을 동시에 활성화하면 RPM 모드가 우선된다. 의도하지 않은 모드 전환을 막기 위해 Configurator에서 두 AUX 범위가 겹치지 않게 설정해야 한다.
+
 ## 함께 바뀐 동작
 
 * 외부 제어 모드에서는 feedforward 출력을 `0`으로 만들어 외부 rate 명령에 RC feedforward가 섞이지 않게 했다.
 * 외부 제어 모드에서는 `FEATURE_MOTOR_STOP` 조건을 적용하지 않는다. 따라서 ARM 상태에서 외부 제어가 활성화된 경우 `MOTOR_STOP`이 모터 출력을 별도로 차단하지 않는다.
-* `BOXMSPOVERRIDE`는 `msp_override_channels_mask` 값과 관계없이 활성 Box 목록에 등록된다.
-* 설정 검증 단계에서 override 채널 마스크가 비어 있다는 이유로 `BOXMSPOVERRIDE` 활성화 조건을 자동 삭제하지 않도록 했다.
+* `MSP CTBR`과 `MSP RPM`은 `msp_override_channels_mask` 값과 관계없이 활성 Box 목록에 등록된다.
+* 설정 검증 단계에서 override 채널 마스크가 비어 있다는 이유로 두 MSP 모드의 활성화 조건을 자동 삭제하지 않도록 했다.
 * `MSP_RPM`은 DShot telemetry와 ARM 상태가 모두 필요하다. 명령 만료, telemetry 비활성, telemetry 무효, disarm, 또는 추정 최대 RPM 오류 시에는 모든 모터 출력을 disarm 값으로 만든다.
 
 ## 관련 소스 파일
@@ -70,9 +72,9 @@ RPM 모드에서는 DShot telemetry가 **모든 활성 모터**에서 유효해�
 | `src/main/msp/msp_protocol_v2_betaflight.h` | `MSP_CTBR` 및 `MSP_RPM` 명령 ID 정의 추가 |
 | `src/main/msp/msp.c` | CTBR float 16바이트 payload와 모터별 32-bit integer RPM payload 파싱, 외부 제어 값 전달 추가 |
 | `src/main/fc/rc.h` | 외부 제어 API 선언 추가 |
-| `src/main/fc/rc.c` | CTBR/RPM 모드 상태, 외부 입력 저장, 범위 제한, 100 ms 만료 확인, rate 대체 및 feedforward 비활성화 추가 |
+| `src/main/fc/rc.c` | 별도 CTBR/RPM Box 모드, 외부 입력 저장, 범위 제한, 모드별 100 ms 만료 확인, rate 대체 및 feedforward 비활성화 추가 |
 | `src/main/flight/mixer.c` | 외부 thrust 사용, 모터별 RPM PI 폐루프, telemetry failsafe 및 외부 제어 중 `MOTOR_STOP` 예외 처리 |
-| `src/main/msp/msp_box.c` | `BOXMSPOVERRIDE`의 상시 등록 |
+| `src/main/msp/msp_box.c` | `MSP CTBR` 및 `MSP RPM` Box의 상시 등록 |
 | `src/main/config/config.c` | override 모드 조건 자동 삭제 방지 |
 
 ## 안전상 주의

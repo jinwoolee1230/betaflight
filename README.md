@@ -18,7 +18,8 @@ This fork differs from Baseflight and Cleanflight in that it focuses on flight p
 
 * `MSP_CTBR` (`0x30F0`)는 float collective thrust (`0.0–1.0`)와 float Roll, Pitch, Yaw body rate (`rad/s`)로 기체를 제어합니다.
 * `MSP_RPM` (`0x30F1`)은 모터별 정수 RPM 목표값을 받아 DShot telemetry 기반의 폐루프 제어를 수행합니다.
-* `BOXMSPOVERRIDE` 모드가 활성화된 동안 해당 외부 제어 명령을 사용합니다.
+* Configurator의 Modes 탭에서 `MSP CTBR` 또는 `MSP RPM`을 각각 별도 AUX 모드로 설정할 수 있습니다. 활성화된 모드가 제어 방식을 결정합니다.
+* 두 모드가 동시에 활성화되면 안전하게 한 가지 출력 경로만 쓰도록 `MSP RPM`이 우선됩니다. 두 AUX 범위는 겹치지 않게 설정하세요.
 * 외부 명령이 100 ms 동안 갱신되지 않으면 안전을 위해 rate와 추력을 0으로 처리합니다.
 * 외부 제어 중 feedforward를 끄고, `MOTOR_STOP`이 모터를 멈추지 않도록 변경했습니다.
 

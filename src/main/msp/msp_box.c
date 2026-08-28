@@ -97,11 +97,12 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT] = {
     { .boxId = BOXACROTRAINER, .boxName = "ACRO TRAINER", .permanentId = 47 },
     { .boxId = BOXVTXCONTROLDISABLE, .boxName = "VTX CONTROL DISABLE", .permanentId = 48},
     { .boxId = BOXLAUNCHCONTROL, .boxName = "LAUNCH CONTROL", .permanentId = 49 },
-    { .boxId = BOXMSPOVERRIDE, .boxName = "MSP OVERRIDE", .permanentId = 50},
     { .boxId = BOXSTICKCOMMANDDISABLE, .boxName = "STICK COMMANDS DISABLE", .permanentId = 51},
     { .boxId = BOXBEEPERMUTE, .boxName = "BEEPER MUTE", .permanentId = 52},
     { .boxId = BOXREADY, .boxName = "READY", .permanentId = 53},
     { .boxId = BOXLAPTIMERRESET, .boxName = "LAP TIMER RESET", .permanentId = 54},
+    { .boxId = BOXMSPCTBR, .boxName = "MSP CTBR", .permanentId = 55},
+    { .boxId = BOXMSPRPM, .boxName = "MSP RPM", .permanentId = 56},
 };
 
 // mask of enabled IDs, calculated on startup based on enabled features. boxId_e is used as bit index
@@ -331,7 +332,8 @@ void initActiveBoxIds(void)
 #endif
 
 #if defined(USE_RX_MSP_OVERRIDE)
-    BME(BOXMSPOVERRIDE);
+    BME(BOXMSPCTBR);
+    BME(BOXMSPRPM);
 #endif
 
     BME(BOXSTICKCOMMANDDISABLE);

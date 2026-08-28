@@ -43,6 +43,7 @@
 
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
+#include "fc/rc.h"
 #include "fc/runtime_config.h"
 #include "fc/tasks.h"
 
@@ -568,7 +569,7 @@ FAST_CODE_NOINLINE void rxFrameCheck(timeUs_t currentTimeUs, timeDelta_t current
     }
 
 #if defined(USE_RX_MSP_OVERRIDE)
-    if (IS_RC_MODE_ACTIVE(BOXMSPOVERRIDE) && rxConfig()->msp_override_channels_mask && rxConfig()->msp_override_failsafe) {
+    if (isExternalControlModeActive() && rxConfig()->msp_override_channels_mask && rxConfig()->msp_override_failsafe) {
         if (rxMspOverrideFrameStatus() & RX_FRAME_COMPLETE) {
             rxSignalReceived = true;
             rxDataProcessingRequired = true;
